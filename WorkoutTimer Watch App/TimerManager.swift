@@ -1,9 +1,4 @@
-//
-//  TimerManager.swift
-//  WorkoutTimer Watch App
-//
-//  Created by Fatom on 2025-10-20.
-//
+
 
 import Foundation
 import Combine
@@ -64,19 +59,23 @@ final class TimerManager: ObservableObject {
     func toggle() {
         isRunning ? pause() : start()
     }
-
+    
+    private func playCountdownHaptic() {
+        // Use a light tap for countdown
+        WKInterfaceDevice.current().play(.notification)
+    }
+    
     // MARK: - Private timer loop
     private func runTimerLoop() async {
         let startDate = Date()
         var lastTick = startDate
         while isRunning && remaining > 0 {
-            // sleep for 250ms to keep UI smooth and responsive, but decrement in full seconds
             do {
-                try await Task.sleep(nanoseconds: 250_000_000)
+                try await Task.sleep(nanoseconds: 250_000_000) // 0.25s ticks
             } catch {
-                // Task cancelled
-                break
+                break // cancelled
             }
+
             let now = Date()
             let elapsed = now.timeIntervalSince(lastTick)
             if elapsed >= 1.0 {
@@ -84,8 +83,13 @@ final class TimerManager: ObservableObject {
                 remaining = max(0, remaining - wholeSeconds)
                 lastTick = now
                 updateProgress()
+
+                // 🔥 LAST 10 SECONDS COUNTDOWN
+                if remaining > 0 && remaining <= 10 {
+                    playCountdownHaptic()
+                }
             }
-            // check cancellation
+
             if Task.isCancelled { break }
         }
 
